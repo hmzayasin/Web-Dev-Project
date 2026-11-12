@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Local environment and secrets
+.env
+*.env
+
+# Local database (recreated on first run)
+instance/*
+!instance/.gitkeep
+
+# Uploaded CVs are personal data: never commit them
+private_uploads/*
+!private_uploads/.gitkeep
+
+# Editors and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

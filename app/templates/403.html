@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block title %}Access restricted{% endblock %}{% block content %}<section class="auth-area"><div class="panel"><label>403 · ACCESS RESTRICTED</label><h1>This area isn't yours.</h1><p>InRole checks user roles before showing protected information.</p><a class="btn" href="{{ url_for('main.home') }}">Back to home →</a></div></section>{% endblock %}
