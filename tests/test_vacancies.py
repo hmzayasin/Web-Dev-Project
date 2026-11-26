@@ -7,6 +7,11 @@ from app.models import Application, Employer, User, Vacancy
 from .conftest import login, post
 
 
+def ver(app, vacancy_id):
+    with app.app_context():
+        return db.session.get(Vacancy, vacancy_id).version
+
+
 def vid(app, title):
     with app.app_context():
         return Vacancy.query.filter_by(title=title).one().id
@@ -88,7 +93,7 @@ def test_create_draft_then_publish_as_verified_recruiter(app, client):
     v = vid(app, "QA Engineer")
     with app.app_context():
         assert db.session.get(Vacancy, v).status == "draft"
-    post(client, f"/manage/vacancies/{v}/status", {"action": "publish"})
+    post(client, f"/manage/vacancies/{v}/status", {"action": "publish", "version": ver(app, v)})
     with app.app_context():
         assert db.session.get(Vacancy, v).status == "open"
     assert "QA Engineer" in client.get("/jobs").get_data(as_text=True)
@@ -124,11 +129,11 @@ def test_cannot_publish_with_past_closing_date(app, client):                    
 def test_close_and_reopen(app, client):
     login(client, "recruiter@inrole.demo")
     v = vid(app, "Backend Engineer (Python)")
-    post(client, f"/manage/vacancies/{v}/status", {"action": "close"})
+    post(client, f"/manage/vacancies/{v}/status", {"action": "close", "version": ver(app, v)})
     with app.app_context():
         assert db.session.get(Vacancy, v).status == "closed"
     assert "Backend Engineer" not in client.get("/jobs").get_data(as_text=True)
-    post(client, f"/manage/vacancies/{v}/status", {"action": "reopen"})
+    post(client, f"/manage/vacancies/{v}/status", {"action": "reopen", "version": ver(app, v)})
     with app.app_context():
         assert db.session.get(Vacancy, v).status == "open"
 
@@ -136,7 +141,7 @@ def test_close_and_reopen(app, client):
 def test_cannot_unpublish_with_applications(app, client):
     login(client, "recruiter@inrole.demo")
     v = vid(app, "Graduate Software Developer")
-    post(client, f"/manage/vacancies/{v}/status", {"action": "unpublish"})
+    post(client, f"/manage/vacancies/{v}/status", {"action": "unpublish", "version": ver(app, v)})
     with app.app_context():
         assert db.session.get(Vacancy, v).status == "open"
 
@@ -145,7 +150,7 @@ def test_edit_vacancy(app, client):
     login(client, "recruiter@inrole.demo")
     v = vid(app, "Backend Engineer (Python)")
     assert client.get(f"/manage/vacancies/{v}/edit").status_code == 200
-    post(client, f"/manage/vacancies/{v}/edit", form(title="Senior Backend Engineer"))
+    post(client, f"/manage/vacancies/{v}/edit", form(title="Senior Backend Engineer", version=ver(app, v)))
     with app.app_context():
         assert db.session.get(Vacancy, v).title == "Senior Backend Engineer"
 
@@ -204,3 +209,43 @@ def test_applicant_list_blocked_for_applicants(app, client):
     v = vid(app, "Graduate Software Developer")
     login(client, "applicant@inrole.demo")
     assert client.get(f"/manage/vacancies/{v}/applicants").status_code == 403
+
+
+# ---------------- lost updates (stale / delayed saves) ----------------
+def test_stale_edit_does_not_overwrite_newer_save(app, client):
+    login(client, "recruiter@inrole.demo")
+    v = vid(app, "Backend Engineer (Python)")
+    opened_with = ver(app, v)                                              # both saves started from this version
+    post(client, f"/manage/vacancies/{v}/edit", form(title="Second update", version=opened_with))
+    # the first save was delayed by a bad connection and only arrives now, still carrying the old version
+    response = post(client, f"/manage/vacancies/{v}/edit", form(title="Delayed first save", version=opened_with),
+                    follow_redirects=True)
+    assert "NOT applied" in response.get_data(as_text=True)
+    with app.app_context():
+        assert db.session.get(Vacancy, v).title == "Second update"
+
+
+def test_version_increases_on_every_save(app, client):
+    login(client, "recruiter@inrole.demo")
+    v = vid(app, "Backend Engineer (Python)")
+    before = ver(app, v)
+    post(client, f"/manage/vacancies/{v}/edit", form(version=before))
+    assert ver(app, v) > before
+
+
+def test_stale_status_change_is_rejected(app, client):
+    login(client, "recruiter@inrole.demo")
+    v = vid(app, "Backend Engineer (Python)")
+    old = ver(app, v)
+    post(client, f"/manage/vacancies/{v}/edit", form(version=old))        # someone edits first
+    post(client, f"/manage/vacancies/{v}/status", {"action": "close", "version": old})
+    with app.app_context():
+        assert db.session.get(Vacancy, v).status == "open"
+
+
+def test_missing_version_is_rejected(app, client):
+    login(client, "recruiter@inrole.demo")
+    v = vid(app, "Backend Engineer (Python)")
+    post(client, f"/manage/vacancies/{v}/edit", form(title="No version sent"))
+    with app.app_context():
+        assert db.session.get(Vacancy, v).title != "No version sent"

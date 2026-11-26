@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% block title %}{{ 'New vacancy' if mode=='new' else 'Edit vacancy' }}{% endblock %}{% block content %}
 <section class="auth-area"><div class="panel wide"><a href="{{ url_for('vacancies.manage') }}">← Back to vacancies</a><label>{{ 'NEW VACANCY' if mode=='new' else 'EDIT VACANCY' }}</label><h1>{{ 'Create a vacancy' if mode=='new' else 'Edit "' ~ vacancy.title ~ '"' }}</h1>
 {% if mode=='edit' %}<p>Status: <span class="badge s-{{ vacancy.effective_status }}">{{ vacancy.effective_status|title }}</span></p>{% endif %}
-<form class="form" method="post" novalidate><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<form class="form" method="post" novalidate data-once><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% if mode=='edit' %}<input type="hidden" name="version" value="{{ vacancy.version }}">{% endif %}
 <label>Job title<input name="title" value="{{ form.get('title','') }}" maxlength="140" required></label>
 <div class="two"><label>Location<input name="location" value="{{ form.get('location','') }}" maxlength="120" required placeholder="e.g. Dublin / Hybrid"></label>
 <label>Job type<select name="job_type">{% for t in job_types %}<option value="{{ t }}" {% if form.get('job_type')==t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></label></div>

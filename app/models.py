@@ -22,6 +22,8 @@ class Vacancy(db.Model):
     job_type=db.Column(db.String(60),default="Full-time"); description=db.Column(db.Text,nullable=False)
     status=db.Column(db.String(20),default="draft"); created_at=db.Column(db.DateTime,default=datetime.utcnow)
     # --- added for F4/F5/F6 (J) ---
+    version=db.Column(db.Integer,nullable=False,default=1)  # optimistic locking: stops a delayed/old save overwriting a newer one
+    __mapper_args__={"version_id_col":version}              # SQLAlchemy bumps it on every UPDATE and detects races
     closing_date=db.Column(db.Date)  # R2; statuses: draft / open / closed (hidden / removed are set by admin moderation)
     @classmethod
     def public_query(cls,today=None):

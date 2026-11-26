@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% block title %}Manage vacancies{% endblock %}
-{% macro act(v,action,label) %}<form method="post" class="inline" action="{{ url_for('vacancies.change_status',vid=v.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="{{ action }}"><button class="link-btn">{{ label }}</button></form>{% endmacro %}
+{% macro act(v,action,label) %}<form method="post" class="inline" data-once action="{{ url_for('vacancies.change_status',vid=v.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="version" value="{{ v.version }}"><input type="hidden" name="action" value="{{ action }}"><button class="link-btn">{{ label }}</button></form>{% endmacro %}
 {% block content %}
 <section class="dashhead"><label>{{ 'ALL EMPLOYERS' if current_user.role=='admin' else 'EMPLOYER WORKSPACE' }}</label><h1>Manage vacancies</h1><p>{% if can_edit %}Create, publish and close the vacancies of your organisation.{% else %}Read-only view. Only recruiters can change vacancies.{% endif %}</p>{% if can_edit %}<a class="btn" href="{{ url_for('vacancies.create') }}">+ New vacancy</a>{% endif %}</section>
 <section class="section tight">
