@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Moderation queue{% endblock %}
+{% block content %}
+<section class="dashhead">
+  <label>ADMIN CONSOLE</label>
+  <h1>Moderation queue</h1>
+  <p>Review reports, moderate vacancies and employers, and manage decision templates.</p>
+</section>
+<section class="section tight">
+  <nav class="toolbar">
+    <a class="btn small{% if status!='open' %} outline{% endif %}" href="{{ url_for('moderation.queue', status='open') }}" {% if status=='open' %}aria-current="page"{% endif %}>Open reports</a>
+    <a class="btn small{% if status!='resolved' %} outline{% endif %}" href="{{ url_for('moderation.queue', status='resolved') }}" {% if status=='resolved' %}aria-current="page"{% endif %}>Resolved</a>
+    <a class="btn small{% if status!='dismissed' %} outline{% endif %}" href="{{ url_for('moderation.queue', status='dismissed') }}" {% if status=='dismissed' %}aria-current="page"{% endif %}>Dismissed</a>
+  </nav>
+  <h2>Reports</h2>
+  {% for report in reports %}
+  <div class="listrow">
+    <div>
+      <b>{{ report.reason }}</b>
+      <p>{% if report.vacancy %}Vacancy: {{ report.vacancy.title }}{% elif report.employer %}Employer: {{ report.employer.name }}{% endif %}</p>
+      <small>Reported by {{ report.reporter.name }} · {{ report.created_at.strftime('%d %b %Y') }}</small>
+      {% if report.details %}<p>{{ report.details }}</p>{% endif %}
+    </div>
+    {% if report.status=='open' %}
+    <form method="post" action="{{ url_for('moderation.report_action', report_id=report.id, action_name='resolve') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn small" type="submit">Resolve</button>
+    </form>
+    <form method="post" action="{{ url_for('moderation.report_action', report_id=report.id, action_name='dismiss') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn outline small" type="submit">Dismiss</button>
+    </form>
+    {% else %}<span class="tag moderation-status">{{ report.status|title }}</span>{% endif %}
+  </div>
+  {% else %}<p class="empty">No reports in this queue.</p>{% endfor %}
+
+  <h2>Vacancies</h2>
+  {% for vacancy in vacancies %}
+  <div class="listrow">
+    <div><b>{{ vacancy.title }}</b><br><small>{{ vacancy.employer.name }} · {{ vacancy.effective_status|title }}</small></div>
+    {% if vacancy.status not in ('hidden','removed') %}
+    <form method="post" action="{{ url_for('moderation.action_alias', target_type='vacancy', target_id=vacancy.id, action_name='hide') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn outline small">Hide</button>
+    </form>
+    <form method="post" action="{{ url_for('moderation.action_alias', target_type='vacancy', target_id=vacancy.id, action_name='remove') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input name="reason" placeholder="Removal explanation" required>
+      <button class="btn small" type="submit">Remove</button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('moderation.action_alias', target_type='vacancy', target_id=vacancy.id, action_name='restore') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn outline small">Restore</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <h2>Employers</h2>
+  {% for employer in employers %}
+  <div class="listrow">
+    <div><b>{{ employer.name }}</b><br><small>Status: {{ employer.status|title }}</small></div>
+    {% if employer.status!='verified' %}
+    <form method="post" action="{{ url_for('moderation.action_alias', target_type='employer', target_id=employer.id, action_name='verify') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn small">Verify</button>
+    </form>
+    {% endif %}
+    {% if employer.status!='suspended' %}
+    <form method="post" action="{{ url_for('moderation.action_alias', target_type='employer', target_id=employer.id, action_name='suspend') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn outline small">Suspend</button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('moderation.action_alias', target_type='employer', target_id=employer.id, action_name='unsuspend') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn small">Unsuspend</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <h2>Decision templates</h2>
+  {% for template in templates %}
+  <div class="listrow">
+    <div><b>{{ template.name }}</b><p>{{ template.subject }}</p><small>{{ template.body }}</small></div>
+    <form method="post" action="{{ url_for('moderation.delete_template', tid=template.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn outline small">Delete</button>
+    </form>
+  </div>
+  {% else %}<p class="empty">No decision templates yet.</p>{% endfor %}
+  <form method="post" action="{{ url_for('moderation.create_template') }}" class="panel decision-template-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="decision-template-field">
+      <label for="template-name">Template name</label>
+      <input id="template-name" name="name" placeholder="e.g. Vacancy removed" required>
+    </div>
+    <div class="decision-template-field">
+      <label for="template-subject">Decision subject</label>
+      <input id="template-subject" name="subject" placeholder="e.g. Update about your vacancy" required>
+    </div>
+    <div class="decision-template-field">
+      <label for="template-body">Decision message</label>
+      <textarea id="template-body" name="body" rows="8" minlength="10" placeholder="Write the standard decision wording" required></textarea>
+    </div>
+    <div><button class="btn" type="submit">Create template</button></div>
+  </form>
+</section>
+{% endblock %}

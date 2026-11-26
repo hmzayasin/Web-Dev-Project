@@ -1,0 +1,27 @@
+from sqlalchemy import inspect, text
+
+
+def upgrade_schema(engine):
+    """Apply additive changes needed by databases created before moderation and CV versioning."""
+    additions = {
+        "user": {
+            "cv_upload_version": "INTEGER NOT NULL DEFAULT 0",
+        },
+        "vacancy": {
+            "removal_reason": "TEXT",
+            "removed_at": "DATETIME",
+        },
+    }
+
+    with engine.begin() as connection:
+        inspector = inspect(connection)
+        for table_name, columns in additions.items():
+            if not inspector.has_table(table_name):
+                continue
+            existing = {column["name"] for column in inspector.get_columns(table_name)}
+            for column_name, column_type in columns.items():
+                if column_name not in existing:
+                    connection.execute(text(
+                        f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
+                    ))
+                    existing.add(column_name)

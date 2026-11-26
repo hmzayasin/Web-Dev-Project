@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Reviewer feedback{% endblock %}
+{% block content %}
+<section class="dashhead">
+  <a href="{{ url_for('vacancies.applicants', vid=application.vacancy_id) }}">← Applicants</a>
+  <label>REVIEWER FEEDBACK</label>
+  <h1>{{ application.applicant.name }}</h1>
+  <p>{{ application.vacancy.title }}</p>
+</section>
+<section class="section tight feedback-section">
+  <form method="post" class="panel feedback-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="feedback-field">
+      <label for="recommendation">Recommendation</label>
+      <select id="recommendation" name="recommendation">
+        {% for recommendation in recommendations %}<option>{{ recommendation }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="feedback-field">
+      <label for="comments">Internal feedback</label>
+      <textarea id="comments" name="comments" rows="10" minlength="3" required></textarea>
+    </div>
+    <div><button class="btn" type="submit">Save feedback</button></div>
+  </form>
+  <h2>Previous feedback</h2>
+  {% for item in feedback %}
+  <div class="listrow"><div><b>{{ item.recommendation }}</b><p>{{ item.comments }}</p><small>{{ item.reviewer.name }} · {{ item.created_at.strftime('%d %b %Y') }}</small></div></div>
+  {% else %}
+  <p class="empty">No feedback has been recorded.</p>
+  {% endfor %}
+</section>
+{% endblock %}

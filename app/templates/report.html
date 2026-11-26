@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Report {{ target_type }}{% endblock %}
+{% block content %}
+<section class="auth-area">
+  <div class="panel report-panel">
+    <a href="{{ url_for('main.jobs') if target_type=='employer' else url_for('main.vacancy_detail', vid=target.id) }}">← Back</a>
+    <label>REPORT</label>
+    <h1>Report {{ target_type }}</h1>
+    <p><b>{{ target.title if target_type=='vacancy' else target.name }}</b></p>
+    <form method="post" class="report-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="report-field">
+        <label for="reason">Reason</label>
+        <select id="reason" name="reason" required>
+          <option value="">Choose a reason</option>
+          {% for reason in reasons %}<option value="{{ reason }}">{{ reason }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="report-field">
+        <label for="details">Details</label>
+        <textarea id="details" name="details" rows="10" maxlength="2000" placeholder="Explain what you noticed"></textarea>
+      </div>
+      <div><button class="btn" type="submit">Submit report</button></div>
+    </form>
+  </div>
+</section>
+{% endblock %}
