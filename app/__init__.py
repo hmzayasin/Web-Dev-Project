@@ -6,16 +6,20 @@ from config import Config
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
-def create_app():
+def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_object(Config)
+    if test_config: app.config.update(test_config)
     Path(app.config["UPLOAD_FOLDER"]).mkdir(exist_ok=True)
     Path(app.instance_path).mkdir(exist_ok=True)
     db.init_app(app); login_manager.init_app(app)
     from app.models import User, Employer, Vacancy
+    from app.csrf import init_csrf
+    from app.vacancies import vacancies_bp
+    init_csrf(app)
     from app.auth import auth_bp
     from app.main import main_bp
-    app.register_blueprint(main_bp); app.register_blueprint(auth_bp)
+    app.register_blueprint(main_bp); app.register_blueprint(auth_bp); app.register_blueprint(vacancies_bp)
     with app.app_context():
         db.create_all()
         if not User.query.first():
@@ -33,4 +37,6 @@ def create_app():
                 Vacancy(employer_id=employer.id,title="Junior Data Analyst",location="Dublin",job_type="Full-time",description="Turn data into useful insights and support better decisions.",status="open"),
                 Vacancy(employer_id=employer.id,title="Frontend Developer Intern",location="Remote",job_type="Internship",description="Help create accessible and engaging user experiences.",status="open")])
             db.session.commit()
+        from app.seed_vacancies import seed_vacancies
+        seed_vacancies()
     return app
