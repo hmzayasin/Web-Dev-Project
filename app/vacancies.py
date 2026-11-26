@@ -63,7 +63,7 @@ def _application_count(vacancy):
 @vacancies_bp.route("/")
 @role_required("recruiter", "reviewer", "admin")
 def manage():
-    query = Vacancy.query
+    query = Vacancy.query.filter(Vacancy.status != "removed")
     if current_user.role != "admin":
         if current_user.employer_id is None:
             abort(403)

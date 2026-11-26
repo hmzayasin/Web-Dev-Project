@@ -24,6 +24,23 @@
 
 /* F4 forms + tables */
 .section.tight{padding-top:20px}
+.moderation-status{align-self:flex-start;display:inline-flex;flex:0 0 auto}
+.feedback-form{width:min(100%,900px);display:grid;gap:16px}
+.feedback-field{display:grid;gap:7px}
+.feedback-field label{color:#536577;letter-spacing:0;font-size:12px}
+.feedback-field select,.feedback-field textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:13px/1.6 'DM Sans',Arial,sans-serif}
+.feedback-field textarea{min-height:240px;resize:vertical}
+.report-panel{width:min(100%,900px)}
+.report-form{display:grid;gap:16px;margin-top:24px}
+.report-field{display:grid;gap:7px}
+.report-field label{color:#536577;letter-spacing:0;font-size:12px}
+.report-field select,.report-field textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:13px/1.6 'DM Sans',Arial,sans-serif}
+.report-field textarea{min-height:240px;resize:vertical}
+.decision-template-form{width:min(100%,900px);display:grid;gap:16px}
+.decision-template-field{display:grid;gap:7px}
+.decision-template-field label{color:#536577;letter-spacing:0;font-size:12px}
+.decision-template-field input,.decision-template-field textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:13px/1.6 'DM Sans',Arial,sans-serif}
+.decision-template-field textarea{min-height:200px;resize:vertical}
 .notice{background:#fff4e5;color:#8a5413;border-radius:10px;padding:12px 16px;font-size:12px;margin-bottom:18px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 .chip{border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:11px;font-weight:700;color:#526477}

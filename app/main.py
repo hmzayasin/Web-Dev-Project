@@ -1,8 +1,11 @@
 from pathlib import Path
 from functools import wraps
+from uuid import uuid4
 from flask import Blueprint,render_template,request,redirect,url_for,flash,current_app,send_from_directory,abort
 from flask_login import login_required,current_user
 from werkzeug.utils import secure_filename
+from sqlalchemy import select, update
+from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.models import Vacancy,User,Application,Employer
 main_bp=Blueprint("main",__name__)
@@ -40,6 +43,7 @@ def vacancy_detail(vid):
     # F6: public may see open AND closed vacancies of verified employers (closed ones show a closing banner);
     # drafts / hidden / removed / unverified-employer vacancies are 404 except to that employer's staff and admins (R1, R6).
     v=db.get_or_404(Vacancy,vid)
+    if v.status=="removed": abort(404)
     staff=current_user.is_authenticated and (current_user.role=="admin" or (current_user.role in ("recruiter","reviewer") and current_user.employer_id==v.employer_id))
     public=v.status in ("open","closed") and v.employer.status=="verified"
     if not public and not staff: abort(404)
@@ -51,20 +55,98 @@ def vacancy_detail(vid):
 @login_required
 def dashboard():
     vacancies=[]
-    if current_user.role=="recruiter" and current_user.employer_id: vacancies=Vacancy.query.filter_by(employer_id=current_user.employer_id).all()
-    elif current_user.role=="admin": vacancies=Vacancy.query.all()
+    if current_user.role=="recruiter" and current_user.employer_id:
+        vacancies=Vacancy.query.filter_by(employer_id=current_user.employer_id).filter(Vacancy.status!="removed").all()
+    elif current_user.role=="admin": vacancies=Vacancy.query.filter(Vacancy.status!="removed").all()
     return render_template("dashboard.html",vacancies=vacancies)
+
+
+def _reserve_cv_upload(user_id):
+    result = db.session.execute(
+        update(User).where(User.id == user_id).values(
+            cv_upload_version=User.cv_upload_version + 1
+        )
+    )
+    if result.rowcount != 1:
+        db.session.rollback()
+        return None
+    generation = db.session.execute(
+        select(User.cv_upload_version).where(User.id == user_id)
+    ).scalar_one()
+    db.session.commit()
+    return generation
+
+
+def _activate_cv_upload(user_id, generation, filename):
+    previous_filename = db.session.execute(
+        select(User.cv_filename).where(User.id == user_id)
+    ).scalar_one()
+    result = db.session.execute(
+        update(User).where(
+            User.id == user_id,
+            User.cv_upload_version == generation,
+        ).values(cv_filename=filename)
+    )
+    if result.rowcount != 1:
+        db.session.rollback()
+        return False, None
+    db.session.commit()
+    return True, previous_filename
+
+
+def _remove_cv_file(filename):
+    if not filename or Path(filename).name != filename:
+        return
+    path = Path(current_app.config["UPLOAD_FOLDER"]) / filename
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        current_app.logger.exception("Unable to remove obsolete CV file %s", filename)
+
+
 @main_bp.route("/profile",methods=["GET","POST"])
 @role_required("applicant")
 def profile():
     if request.method=="POST":
+        try:
+            generation = _reserve_cv_upload(current_user.id)
+        except SQLAlchemyError:
+            db.session.rollback()
+            current_app.logger.exception("Unable to reserve CV upload for user %s", current_user.id)
+            flash("The CV upload could not be started. Please try again.", "error")
+            return redirect(url_for("main.profile"))
+        if generation is None:
+            flash("The CV upload could not be started. Please try again.", "error")
+            return redirect(url_for("main.profile"))
+
         f=request.files.get("cv")
         if f and f.filename:
             name=secure_filename(f.filename); ext=name.rsplit(".",1)[-1].lower() if "." in name else ""
             if ext not in {"pdf","doc","docx"}: flash("Upload a PDF, DOC or DOCX file.","error")
             else:
-                stored=f"user_{current_user.id}_{name}"; f.save(Path(current_app.config["UPLOAD_FOLDER"])/stored)
-                current_user.cv_filename=stored; db.session.commit(); flash("CV uploaded to private storage.","success")
+                stored=f"user_{current_user.id}_{uuid4().hex}.{ext}"
+                upload_folder=Path(current_app.config["UPLOAD_FOLDER"])
+                try:
+                    f.save(upload_folder/stored)
+                except OSError:
+                    current_app.logger.exception("Unable to save CV for user %s", current_user.id)
+                    _remove_cv_file(stored)
+                    flash("The CV could not be saved. Please try again.", "error")
+                    return redirect(url_for("main.profile"))
+                try:
+                    activated, previous_filename = _activate_cv_upload(current_user.id, generation, stored)
+                except SQLAlchemyError:
+                    db.session.rollback()
+                    current_app.logger.exception("Unable to activate CV for user %s", current_user.id)
+                    _remove_cv_file(stored)
+                    flash("The CV could not be saved. Please try again.", "error")
+                    return redirect(url_for("main.profile"))
+                if not activated:
+                    _remove_cv_file(stored)
+                    flash("A newer CV upload is already in progress. This older upload was discarded.", "error")
+                    return redirect(url_for("main.profile"))
+                _remove_cv_file(previous_filename)
+                flash("CV uploaded to private storage.", "success")
         return redirect(url_for("main.profile"))
     return render_template("profile.html")
 @main_bp.route("/private-cv/<int:uid>")

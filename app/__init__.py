@@ -19,9 +19,13 @@ def create_app(test_config=None):
     init_csrf(app)
     from app.auth import auth_bp
     from app.main import main_bp
+    from app.moderation import moderation_bp
     app.register_blueprint(main_bp); app.register_blueprint(auth_bp); app.register_blueprint(vacancies_bp)
+    app.register_blueprint(moderation_bp)
     with app.app_context():
         db.create_all()
+        from app.schema_migrations import upgrade_schema
+        upgrade_schema(db.engine)
         if not User.query.first():
             employer = Employer(name="Northstar Technologies", description="A growing technology team.", status="verified")
             db.session.add(employer); db.session.flush()
