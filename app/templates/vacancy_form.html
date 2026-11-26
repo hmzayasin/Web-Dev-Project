@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% block title %}{{ 'New vacancy' if mode=='new' else 'Edit vacancy' }}{% endblock %}{% block content %}
+<section class="auth-area"><div class="panel wide"><a href="{{ url_for('vacancies.manage') }}">← Back to vacancies</a><label>{{ 'NEW VACANCY' if mode=='new' else 'EDIT VACANCY' }}</label><h1>{{ 'Create a vacancy' if mode=='new' else 'Edit "' ~ vacancy.title ~ '"' }}</h1>
+{% if mode=='edit' %}<p>Status: <span class="badge s-{{ vacancy.effective_status }}">{{ vacancy.effective_status|title }}</span></p>{% endif %}
+<form class="form" method="post" novalidate><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label>Job title<input name="title" value="{{ form.get('title','') }}" maxlength="140" required></label>
+<div class="two"><label>Location<input name="location" value="{{ form.get('location','') }}" maxlength="120" required placeholder="e.g. Dublin / Hybrid"></label>
+<label>Job type<select name="job_type">{% for t in job_types %}<option value="{{ t }}" {% if form.get('job_type')==t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></label></div>
+<label>Closing date <small>(required to publish; applications stop after this day)</small><input type="date" name="closing_date" value="{{ form.get('closing_date','') }}"></label>
+<label>Description<textarea name="description" rows="9" maxlength="5000" required>{{ form.get('description','') }}</textarea></label>
+<div class="actions-row"><button class="btn outline" name="action" value="save">{{ 'Save draft' if mode=='new' or vacancy.status=='draft' else 'Save changes' }}</button>{% if mode=='new' or vacancy.status=='draft' %}<button class="btn" name="action" value="publish">Save &amp; publish</button>{% endif %}</div></form>
+<p class="hint">Publishing needs a verified organisation and a closing date of today or later.</p></div></section>{% endblock %}

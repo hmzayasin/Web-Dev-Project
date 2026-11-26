@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% block title %}Manage vacancies{% endblock %}
+{% macro act(v,action,label) %}<form method="post" class="inline" action="{{ url_for('vacancies.change_status',vid=v.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="{{ action }}"><button class="link-btn">{{ label }}</button></form>{% endmacro %}
+{% block content %}
+<section class="dashhead"><label>{{ 'ALL EMPLOYERS' if current_user.role=='admin' else 'EMPLOYER WORKSPACE' }}</label><h1>Manage vacancies</h1><p>{% if can_edit %}Create, publish and close the vacancies of your organisation.{% else %}Read-only view. Only recruiters can change vacancies.{% endif %}</p>{% if can_edit %}<a class="btn" href="{{ url_for('vacancies.create') }}">+ New vacancy</a>{% endif %}</section>
+<section class="section tight">
+{% if can_edit and not verified %}<div class="notice">Your organisation is <b>awaiting admin verification</b>. You can save drafts now, but vacancies are only published once it is verified.</div>{% endif %}
+<div class="chips">{% for key,label in [('all','All'),('draft','Draft'),('open','Open'),('closed','Closed')] %}<a class="chip {% if selected==key %}on{% endif %}" href="{{ url_for('vacancies.manage',status=key) }}">{{ label }} <b>{{ tally.get(key,0) }}</b></a>{% endfor %}</div>
+{% if vacancies %}<div class="tablewrap"><table class="table"><thead><tr><th>Vacancy</th><th>Status</th><th>Closing date</th><th>Applicants</th><th>Actions</th></tr></thead><tbody>
+{% for v in vacancies %}<tr>
+<td><a href="{{ url_for('main.vacancy_detail',vid=v.id) }}"><b>{{ v.title }}</b></a><small>{{ v.location }} · {{ v.job_type }}{% if current_user.role=='admin' %} · {{ v.employer.name }}{% endif %}</small></td>
+<td><span class="badge s-{{ v.effective_status }}">{{ v.effective_status|title }}</span>{% if v.status=='open' and v.effective_status=='closed' %}<small>deadline passed</small>{% elif v.status=='open' and v.employer.status!='verified' %}<small>hidden until employer verified</small>{% endif %}</td>
+<td>{{ v.closing_date.strftime('%d %b %Y') if v.closing_date else '—' }}</td>
+<td><a href="{{ url_for('vacancies.applicants',vid=v.id) }}">{{ counts.get(v.id,0) }} →</a></td>
+<td class="row-actions">{% if can_edit %}{% if v.status in ['draft','open','closed'] %}<a href="{{ url_for('vacancies.edit',vid=v.id) }}">Edit</a>{% endif %}{% if v.status=='draft' %}{{ act(v,'publish','Publish') }}{% elif v.status=='open' %}{{ act(v,'close','Close') }}{% if not counts.get(v.id) %}{{ act(v,'unpublish','Unpublish') }}{% endif %}{% elif v.status=='closed' %}{{ act(v,'reopen','Reopen') }}{% else %}<small>Managed by admin</small>{% endif %}{% else %}<a href="{{ url_for('vacancies.applicants',vid=v.id) }}">View applicants</a>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>
+{% else %}<p class="empty">No {{ selected if selected!='all' else '' }} vacancies yet.{% if can_edit %} <a href="{{ url_for('vacancies.create') }}">Create your first vacancy</a>.{% endif %}</p>{% endif %}
+</section>{% endblock %}
