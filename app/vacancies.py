@@ -9,6 +9,7 @@ from datetime import date
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
+from sqlalchemy.orm.exc import StaleDataError
 
 from app import db
 from app import vacancy_rules as rules
@@ -32,6 +33,26 @@ def _own_or_403(vid):
 
 def _employer_verified():
     return current_user.employer is not None and current_user.employer.status == "verified"
+
+
+STALE_MESSAGE = ("This vacancy was changed since you opened it, so your save was NOT applied. "
+                 "Review the latest version below and try again.")
+
+
+def _is_stale(vacancy):
+    """Lost-update guard: the form must carry the version it was loaded with."""
+    return request.form.get("version", "") != str(vacancy.version)
+
+
+def _commit_or_conflict(vid):
+    """Commit; if someone else saved in the same instant, roll back and report it. Returns a redirect or None."""
+    try:
+        db.session.commit()
+    except StaleDataError:
+        db.session.rollback()
+        flash(STALE_MESSAGE, "error")
+        return redirect(url_for("vacancies.edit", vid=vid))
+    return None
 
 
 def _application_count(vacancy):
@@ -112,6 +133,9 @@ def edit(vid):
         flash("This vacancy was removed from public view by an administrator and can't be edited.", "error")
         return redirect(url_for("vacancies.manage"))
     if request.method == "POST":
+        if _is_stale(vacancy):
+            flash(STALE_MESSAGE, "error")
+            return redirect(url_for("vacancies.edit", vid=vid))
         publishing = request.form.get("action") == "publish" and vacancy.status == rules.DRAFT
         clean, errors = rules.validate_vacancy(
             request.form, require_future=publishing or vacancy.status == rules.OPEN)
@@ -134,8 +158,8 @@ def edit(vid):
                 flash("Vacancy published.", "success")
         else:
             flash("Changes saved.", "success")
-        db.session.commit()
-        return redirect(url_for("vacancies.manage"))
+        conflict = _commit_or_conflict(vid)
+        return conflict or redirect(url_for("vacancies.manage"))
     form = {"title": vacancy.title, "location": vacancy.location, "job_type": vacancy.job_type,
             "description": vacancy.description,
             "closing_date": vacancy.closing_date.isoformat() if vacancy.closing_date else ""}
@@ -148,6 +172,9 @@ def edit(vid):
 @role_required("recruiter")
 def change_status(vid):
     vacancy = _own_or_403(vid)
+    if _is_stale(vacancy):
+        flash(STALE_MESSAGE, "error")
+        return redirect(url_for("vacancies.manage"))
     action = request.form.get("action", "")
     new_status, error = rules.transition(
         vacancy.status, action, employer_verified=_employer_verified(),
@@ -156,7 +183,12 @@ def change_status(vid):
         flash(error, "error")
     else:
         vacancy.status = new_status
-        db.session.commit()
+        try:
+            db.session.commit()
+        except StaleDataError:
+            db.session.rollback()
+            flash(STALE_MESSAGE, "error")
+            return redirect(url_for("vacancies.manage"))
         flash({"publish": "Vacancy published.", "close": "Vacancy closed to new applications.",
                "reopen": "Vacancy reopened.", "unpublish": "Vacancy returned to draft."}[action], "success")
     return redirect(url_for("vacancies.manage"))
