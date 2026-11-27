@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block title %}Saved jobs{% endblock %}{% block content %}
+<section class="dashhead"><label>YOUR SHORTLIST</label><h1>Saved jobs</h1><p>Roles you bookmarked, with what has changed since. Open roles closing soonest come first.</p></section>
+<section class="section tight">
+{% if items %}<div class="saved-list">{% for i in items %}{% set v=i.vacancy %}{% set key,label=i.state %}
+<div class="saved-item {{ key }}">
+  <div class="saved-main"><b class="mark">{{ v.employer.name[:1] }}</b><div>
+    {% if key in ['open','soon','closed'] %}<a href="{{ url_for('main.vacancy_detail',vid=v.id) }}"><h3>{{ v.title }}</h3></a>{% else %}<h3>{{ v.title }}</h3>{% endif %}
+    <p>{{ v.employer.name }} · {{ v.location }} · {{ v.job_type }}</p>
+    <small>Saved {{ i.row.created_at.strftime('%d %b %Y') if i.row.created_at else '' }}{% if v.closing_date %} · Closing date {{ v.closing_date.strftime('%d %b %Y') }}{% endif %}</small></div></div>
+  <div class="saved-side"><span class="badge sv-{{ key }}">{{ label }}</span>{% if i.applied %}<span class="badge a-shortlisted">Applied</span>{% endif %}
+  <form method="post" action="{{ url_for('saved.save',vid=v.id) }}" data-once><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="unsave"><input type="hidden" name="next" value="{{ url_for('saved.saved_list') }}"><button class="link-btn">Remove</button></form></div>
+</div>{% endfor %}</div>
+{% else %}<p class="empty">You haven't saved any jobs yet. Open a vacancy and choose <b>Save for later</b>. <a href="{{ url_for('main.jobs') }}">Browse jobs →</a></p>{% endif %}
+</section>{% endblock %}

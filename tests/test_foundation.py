@@ -11,7 +11,7 @@ from .conftest import login, post
 def test_friendly_404_page(client):
     response = client.get("/this-page-does-not-exist")
     assert response.status_code == 404
-    assert "find that page" in response.get_data(as_text=True)
+    assert "find that page" in response.get_data(as_text=True)   # the apostrophe is HTML-escaped
 
 
 def test_upload_over_size_limit_gets_friendly_413(app, client):
