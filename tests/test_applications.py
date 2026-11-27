@@ -4,7 +4,7 @@ from pathlib import Path
 from app import db
 from app.models import Application, StatusEvent, User, Vacancy
 
-from .conftest import csrf, login, post
+from .conftest import csrf, login, logout, post
 
 
 def get_application_id(app, email, title):
@@ -24,7 +24,7 @@ def get_vacancy_id(app, title):
 def upload_cv(client):
     return client.post(
         "/profile",
-        data={"cv": (BytesIO(b"candidate CV"), "candidate.pdf")},
+        data={"cv": (BytesIO(b"candidate CV"), "candidate.pdf"), "csrf_token": csrf(client)},
         content_type="multipart/form-data",
     )
 
@@ -187,10 +187,10 @@ def test_application_cv_download_is_scoped_to_vacancy_owner(app, client):
     assert response.status_code == 200
     assert response.data == b"private CV"
 
-    client.get("/auth/logout")
+    logout(client)
     login(client, "pending.recruiter@inrole.demo")
     assert client.get(f"/applications/{aid}/cv").status_code == 403
 
-    client.get("/auth/logout")
+    logout(client)
     login(client, "admin@inrole.demo")
     assert client.get(f"/applications/{aid}/cv").data == b"private CV"
