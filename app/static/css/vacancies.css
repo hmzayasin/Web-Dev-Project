@@ -70,4 +70,20 @@ form.inline{display:inline}.link-btn{background:none;border:0;padding:0;cursor:p
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}.toolbar input{min-width:220px}
 .pager{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:11px;color:var(--muted)}.pager a{font-weight:800}
 
-@media(max-width:580px){.facts{grid-template-columns:1fr}.form .two{grid-template-columns:1fr}.filter-row label{flex:1 1 140px}.stage{flex:1 1 90px}.toolbar input{min-width:0;flex:1 1 100%}}
+/* H's application workflow */
+.application-status-form{display:grid;gap:7px;min-width:180px;margin-top:10px}
+.application-status-form label{display:grid;gap:4px;color:#536577;font-size:10px;font-weight:700}
+.application-status-form select,.application-status-form textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font:11px/1.5 'DM Sans',Arial,sans-serif}
+.status-message{min-height:1em;color:#a33;font-size:10px}
+.application-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,auto);gap:14px;align-items:start}
+.application-row p{margin:5px 0;color:var(--muted);font-size:11px}
+.application-row form{display:grid;gap:7px;margin-top:10px}
+.application-row form label{display:grid;gap:4px;color:#536577;font-size:10px;font-weight:700}
+.application-row form input{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font:11px 'DM Sans',Arial,sans-serif}
+.timeline{grid-column:1/-1;display:grid;gap:0;margin:4px 0 0;padding:0 0 0 18px;border-left:2px solid #d5e7e5;list-style:none}
+.timeline li{position:relative;padding:0 0 14px 10px;font-size:11px}
+.timeline li:before{position:absolute;left:-24px;top:3px;width:8px;height:8px;border-radius:50%;background:var(--teal);content:''}
+.timeline time{display:block;color:var(--muted);font-size:10px}
+.timeline p{margin:4px 0 0;color:var(--muted)}
+
+@media(max-width:580px){.facts{grid-template-columns:1fr}.form .two{grid-template-columns:1fr}.filter-row label{flex:1 1 140px}.stage{flex:1 1 90px}.toolbar input{min-width:0;flex:1 1 100%}.application-row{grid-template-columns:1fr}.timeline{grid-column:1}}

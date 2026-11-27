@@ -2,12 +2,14 @@ from sqlalchemy import inspect, text
 
 
 def upgrade_schema(engine):
-    """Apply additive changes needed by databases created before moderation and CV versioning."""
+    """Apply additive changes needed by databases created before current features."""
     additions = {
         "user": {
             "cv_upload_version": "INTEGER NOT NULL DEFAULT 0",
         },
         "vacancy": {
+            "version": "INTEGER NOT NULL DEFAULT 1",
+            "closing_date": "DATE",
             "removal_reason": "TEXT",
             "removed_at": "DATETIME",
         },

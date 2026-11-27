@@ -12,6 +12,7 @@ from flask_login import current_user
 from sqlalchemy.orm.exc import StaleDataError
 
 from app import db
+from app.application_rules import STATUS_TRANSITIONS
 from app import vacancy_rules as rules
 from app.csrf import csrf_protect
 from app.main import role_required
@@ -234,5 +235,5 @@ def applicants(vid):
     return render_template(
         "applicants.html", vacancy=vacancy, pagination=pagination, counts=counts, total=total,
         status=status, sort=sort, q=term, stages=rules.APPLICATION_STATUSES, sorts=rules.SORTS,
-        can_edit=current_user.role == "recruiter",
+        can_edit=current_user.role == "recruiter", status_transitions=STATUS_TRANSITIONS,
     )

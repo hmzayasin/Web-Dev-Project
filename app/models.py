@@ -42,8 +42,7 @@ class Vacancy(db.Model):
     def days_left(self):
         return None if self.closing_date is None else (self.closing_date-date.today()).days
 class Application(db.Model):
-    """Minimal application record so vacancy counts / the applicant list (F9) work.
-    H owns the full application workflow (apply, status changes, history) and may extend this class."""
+    """An applicant's submission to a vacancy, with status history in StatusEvent."""
     __table_args__=(db.UniqueConstraint("vacancy_id","applicant_id",name="uq_one_application_per_vacancy"),)  # R3
     id=db.Column(db.Integer,primary_key=True) 
     vacancy_id=db.Column(db.Integer,db.ForeignKey("vacancy.id"),nullable=False)

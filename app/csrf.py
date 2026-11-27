@@ -1,11 +1,11 @@
-"""Tiny CSRF protection for the vacancy-management forms.
+"""Session-backed CSRF protection for state-changing form and JSON requests.
 
-Every state-changing request under /manage/vacancies must send the hidden
-field ``csrf_token`` that matches the token stored in the user's session.
+Requests must send a ``csrf_token`` that matches the token stored in the
+user's session. Tokens may be sent as a form field, JSON field, or header.
 
-If the team later adopts Flask-WTF's ``CSRFProtect``, delete this file, remove
-``init_csrf(app)`` from create_app() and the ``before_request`` line in
-vacancies.py; the templates already call ``csrf_token()`` the same way.
+If the team later adopts Flask-WTF's ``CSRFProtect``, delete this file and
+remove ``init_csrf(app)`` from create_app() and the blueprint/route hooks.
+Templates already call ``csrf_token()`` the same way.
 """
 import hmac
 import secrets
@@ -25,10 +25,14 @@ def csrf_protect():
     """Use as ``blueprint.before_request``."""
     if request.method in SAFE_METHODS:
         return
-    sent = request.form.get("csrf_token", "")
+    payload = request.get_json(silent=True)
+    sent = (request.headers.get("X-CSRFToken") or
+            (payload.get("csrf_token", "") if isinstance(payload, dict) else "") or
+            request.form.get("csrf_token", ""))
     expected = session.get("_csrf_token", "")
-    if not expected or not hmac.compare_digest(sent.encode(), expected.encode()):
-        abort(400, description="Missing or invalid form token. Reload the page and try again.")
+    if (not isinstance(sent, str) or not isinstance(expected, str) or not expected or
+            not hmac.compare_digest(sent.encode(), expected.encode())):
+        abort(400, description="Missing or invalid CSRF token. Reload the page and try again.")
 
 
 def init_csrf(app):

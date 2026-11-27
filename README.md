@@ -36,18 +36,21 @@ The first run seeds Northstar Technologies and three open demo vacancies. To res
 - Register, log in and log out.
 - Four role-specific dashboards and role-restricted applicant profile.
 - Applicant CV upload (PDF, DOC or DOCX; 5 MB max) into `private_uploads/`, outside public static files.
-- SQLite models for User, Employer and Vacancy.
+- CV-backed applications with duplicate and vacancy-closing validation, applicant status timelines, recruiter status updates, and applicant withdrawal.
+- Application and status-event records alongside the SQLite User, Employer, Vacancy and Application models.
 
 ## Important prototype limits
-This is a **rough working skeleton**, not the complete recruitment platform. It supports the foundation and demo flows only. Full apply submission, application timeline / StatusEvent, recruiter vacancy management, reviewer notes, reporting and administrator moderation are not implemented yet; these belong to the other team workstreams. The detail-page apply action currently directs to the dashboard / account creation rather than submitting a real application.
+This is a **rough working prototype**, not a production recruitment platform. The demo supports the foundation, vacancy management, CV-backed applications, applicant timelines, recruiter status updates, reviewer feedback, reporting and administrator moderation. Email notifications, interview booking and messaging are not implemented.
 
-For a production build, add CSRF protection (e.g. Flask-WTF), stronger secret configuration, and employer-staff CV access checks. In this demo, an applicant can access their own CV and an admin can access CVs; employer access is deliberately not enabled until ownership checks are integrated.
+The demo uses session-backed CSRF tokens, including for JSON status updates. For production, strengthen secret management and add operational controls such as rate limiting and audit retention. CV access is restricted to the applicant, an administrator, or recruiter/reviewer staff belonging to the application's vacancy owner.
 
 ## Structure
 - `app/auth.py` — registration and login
-- `app/main.py` — homepage, jobs, dashboards, applicant profile and CV route
-- `app/models.py` — User, Employer and Vacancy
+- `app/main.py` — homepage, jobs, dashboards, applications, status updates, withdrawal and CV routes
+- `app/application_rules.py` — allowed application status transitions
+- `app/models.py` — User, Employer, Vacancy, Application and StatusEvent
 - `app/templates/` — Jinja pages
 - `app/static/css/style.css` — brand styling
 - `app/static/js/main.js` — small UI enhancement
+- `tests/test_applications.py` — application workflow tests
 - `private_uploads/` — private CV storage

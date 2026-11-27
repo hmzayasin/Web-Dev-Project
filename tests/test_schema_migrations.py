@@ -18,17 +18,17 @@ def test_upgrade_adds_moderation_columns_to_existing_vacancy_table():
         upgrade_schema(engine)
 
         columns = {column["name"] for column in inspect(engine).get_columns("vacancy")}
-        assert {"removal_reason", "removed_at"} <= columns
+        assert {"version", "closing_date", "removal_reason", "removed_at"} <= columns
         user_columns = {column["name"] for column in inspect(engine).get_columns("user")}
         assert "cv_upload_version" in user_columns
         with engine.connect() as connection:
             row = connection.execute(
-                text("SELECT title, removal_reason, removed_at FROM vacancy WHERE id = 1")
+                text("SELECT title, version, closing_date, removal_reason, removed_at FROM vacancy WHERE id = 1")
             ).one()
             upload_version = connection.execute(
                 text("SELECT cv_upload_version FROM user WHERE id = 1")
             ).scalar_one()
-        assert row == ("Existing role", None, None)
+        assert row == ("Existing role", 1, None, None, None)
         assert upload_version == 0
     finally:
         engine.dispose()
