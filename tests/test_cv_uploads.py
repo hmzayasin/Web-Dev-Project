@@ -5,7 +5,7 @@ from app import db
 from app.main import _activate_cv_upload, _reserve_cv_upload
 from app.models import User
 
-from .conftest import login
+from .conftest import csrf, login
 
 
 def test_stale_cv_upload_cannot_replace_newer_generation(app):
@@ -33,7 +33,7 @@ def test_profile_uploads_use_unique_files_and_replace_active_cv(app, client):
 
     first = client.post(
         "/profile",
-        data={"cv": (BytesIO(b"first CV"), "candidate.pdf")},
+        data={"cv": (BytesIO(b"first CV"), "candidate.pdf"), "csrf_token": csrf(client)},
         content_type="multipart/form-data",
     )
     assert first.status_code == 302
@@ -45,7 +45,7 @@ def test_profile_uploads_use_unique_files_and_replace_active_cv(app, client):
 
     second = client.post(
         "/profile",
-        data={"cv": (BytesIO(b"new CV"), "candidate.pdf")},
+        data={"cv": (BytesIO(b"new CV"), "candidate.pdf"), "csrf_token": csrf(client)},
         content_type="multipart/form-data",
     )
     assert second.status_code == 302

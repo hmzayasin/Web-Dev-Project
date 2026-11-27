@@ -1,1 +1,13 @@
-{% extends 'base.html' %}{% block title %}Register{% endblock %}{% block content %}<section class="auth-area"><div class="panel"><label>GET STARTED</label><h1>Make your next move.</h1><p>Create an InRole account.</p><form method="post" class="form"><label>Full name<input name="name" required></label><label>Email<input name="email" type="email" required></label><label>Password<input name="password" type="password" minlength="8" required></label><label>Joining as<select name="role"><option value="applicant">Applicant</option><option value="recruiter">Recruiter / employer staff</option></select></label><button class="btn">Create account →</button></form><p>Recruiter organisations start as pending verification.</p></div></section>{% endblock %}
+{% extends 'base.html' %}{% block title %}Register{% endblock %}{% block content %}<section class="auth-area"><div class="panel"><label>GET STARTED</label><h1>Make your next move.</h1><p>Create an InRole account.</p>
+<form method="post" class="form" id="register-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label>Full name<input name="name" value="{{ form.get('name','') }}" maxlength="100" required autocomplete="name"></label>
+<label>Email<input name="email" type="email" value="{{ form.get('email','') }}" maxlength="150" required autocomplete="email"></label>
+<label>Password<input name="password" type="password" minlength="8" required autocomplete="new-password"><span class="field-note">At least 8 characters.</span></label>
+<label>Joining as<select name="role" id="role"><option value="applicant">Applicant</option><option value="recruiter" {% if form.get('role')=='recruiter' %}selected{% endif %}>Recruiter / employer staff</option></select></label>
+<div class="org-fields" id="org-fields" {% if form.get('role')!='recruiter' %}hidden{% endif %}>
+<label>Organisation name<input name="organisation" value="{{ form.get('organisation','') }}" maxlength="120" placeholder="e.g. Northstar Technologies"></label>
+<label>About the organisation <span class="field-note">(optional)</span><textarea name="organisation_description" rows="3" maxlength="1000">{{ form.get('organisation_description','') }}</textarea></label>
+<span class="field-note">New organisations start as pending until an administrator verifies them. You can draft vacancies straight away.</span></div>
+<button class="btn">Create account →</button></form>
+<p>Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p></div></section>{% endblock %}
+{% block scripts %}<script>(function(){var r=document.getElementById('role'),f=document.getElementById('org-fields');if(!r||!f)return;function t(){f.hidden=r.value!=='recruiter';}r.addEventListener('change',t);t();})();</script>{% endblock %}

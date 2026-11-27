@@ -16,7 +16,13 @@ def client(app):
 
 
 def login(client, email, password="InRole123!"):
-    return client.post("/auth/login", data={"email": email, "password": password}, follow_redirects=True)
+    return client.post("/auth/login", data={"email": email, "password": password, "csrf_token": csrf(client)},
+                       follow_redirects=True)
+
+
+def logout(client):
+    """Log out is POST-only (with a CSRF token), so tests can't just GET /auth/logout."""
+    return post(client, "/auth/logout")
 
 
 def csrf(client):

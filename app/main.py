@@ -149,12 +149,28 @@ def profile():
                 flash("CV uploaded to private storage.", "success")
         return redirect(url_for("main.profile"))
     return render_template("profile.html")
+def can_view_cv(viewer,applicant_id):
+    """R8: a CV is private. Only its owner, an admin, or staff (recruiter/reviewer) of an employer
+    the applicant has applied to may open it."""
+    if viewer.id==applicant_id or viewer.role=="admin": return True
+    if viewer.role in ("recruiter","reviewer") and viewer.employer_id:
+        return db.session.query(Application.id).join(Vacancy,Application.vacancy_id==Vacancy.id).filter(
+            Application.applicant_id==applicant_id,Vacancy.employer_id==viewer.employer_id).first() is not None
+    return False
 @main_bp.route("/private-cv/<int:uid>")
 @login_required
 def private_cv(uid):
-    if current_user.id!=uid and current_user.role!="admin": abort(403)
-    u=User.query.get_or_404(uid)
+    if not can_view_cv(current_user,uid): abort(403)   # check permission first so user ids can't be probed
+    u=db.get_or_404(User,uid)
     if not u.cv_filename: abort(404)
-    return send_from_directory(current_app.config["UPLOAD_FOLDER"],u.cv_filename,as_attachment=True)
+    response=send_from_directory(current_app.config["UPLOAD_FOLDER"],u.cv_filename,as_attachment=True)
+    response.headers["Cache-Control"]="private, no-store"   # don't leave personal data in shared caches
+    return response
 @main_bp.app_errorhandler(403)
 def forbidden(e): return render_template("403.html"),403
+@main_bp.app_errorhandler(404)
+def not_found(e): return render_template("error.html",code=404,title="We couldn't find that page.",message="The link may be out of date, or the vacancy may have been closed or removed."),404
+@main_bp.app_errorhandler(413)
+def too_large(e): return render_template("error.html",code=413,title="That file is too large.",message="CVs can be up to 5 MB. Please choose a smaller PDF, DOC or DOCX file."),413
+@main_bp.app_errorhandler(400)
+def bad_request(e): return render_template("error.html",code=400,title="That request couldn't be processed.",message=getattr(e,"description",None) or "Please go back, reload the page and try again."),400

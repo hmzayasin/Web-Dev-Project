@@ -1,11 +1,12 @@
-"""Tiny CSRF protection for the vacancy-management forms.
+"""CSRF protection for every state-changing request (M: foundation).
 
-Every state-changing request under /manage/vacancies must send the hidden
-field ``csrf_token`` that matches the token stored in the user's session.
+Every POST/PUT/PATCH/DELETE must send the session's token, either as the hidden
+form field ``csrf_token`` or, for JavaScript fetch() calls, the ``X-CSRFToken``
+header. Templates get the token with ``{{ csrf_token() }}``; base.html also puts it
+in ``<meta name="csrf-token">`` so scripts can read it.
 
-If the team later adopts Flask-WTF's ``CSRFProtect``, delete this file, remove
-``init_csrf(app)`` from create_app() and the ``before_request`` line in
-vacancies.py; the templates already call ``csrf_token()`` the same way.
+If the team later adopts Flask-WTF's ``CSRFProtect``, delete this file and
+``init_csrf(app)`` in create_app(); the templates already use ``csrf_token()``.
 """
 import hmac
 import secrets
@@ -22,10 +23,10 @@ def generate_csrf_token():
 
 
 def csrf_protect():
-    """Use as ``blueprint.before_request``."""
+    """Runs before every request (and is harmless if a blueprint also registers it)."""
     if request.method in SAFE_METHODS:
         return
-    sent = request.form.get("csrf_token", "")
+    sent = request.form.get("csrf_token") or request.headers.get("X-CSRFToken", "")
     expected = session.get("_csrf_token", "")
     if not expected or not hmac.compare_digest(sent.encode(), expected.encode()):
         abort(400, description="Missing or invalid form token. Reload the page and try again.")
@@ -33,3 +34,4 @@ def csrf_protect():
 
 def init_csrf(app):
     app.jinja_env.globals["csrf_token"] = generate_csrf_token
+    app.before_request(csrf_protect)

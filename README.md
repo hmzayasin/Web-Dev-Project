@@ -1,53 +1,84 @@
-# InRole — Flask website starter
+# InRole: job recruitment website
 
-A working presentation prototype for the COMP3019J InRole project. It focuses on the shared foundation and M's assigned slice: accounts, login/logout, role-aware navigation, starter models, base layout and applicant CV upload.
+COMP3019J team project (Team Clovers). InRole connects employers that advertise vacancies with applicants, and gives employer staff and administrators the tools to keep decisions consistent and listings trustworthy.
 
-## Run in Visual Studio Code (Windows)
-1. Extract this ZIP.
-2. Open the extracted `InRole_Website_Starter` folder in VS Code.
-3. Open Terminal → New Terminal.
-4. Run:
-   ```powershell
-   py -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   pip install -r requirements.txt
-   python run.py
-   ```
-5. Open http://127.0.0.1:5000 in your browser.
+Built with Flask, Flask-SQLAlchemy (SQLite), Flask-Login and Jinja templates, with plain JavaScript for live filtering. Tests use pytest.
 
-If PowerShell blocks activation, use Command Prompt and run `.venv\Scripts\activate`.
+## Run it (Windows PowerShell)
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt -r requirements-dev.txt
+py run.py
+```
+Open http://127.0.0.1:5000. If PowerShell blocks `Activate.ps1`, run `Set-ExecutionPolicy -Scope Process Bypass` first.
+
+On macOS or Linux, use `python3 -m venv .venv` and `source .venv/bin/activate`.
+
+## Run the tests
+```powershell
+py -m pytest
+```
+Each test builds a fresh in-memory database, so your demo data is not touched.
 
 ## Demo accounts
-Password for all accounts: `InRole123!`
+All demo accounts use the password `InRole123!`.
 
-| Role | Email |
-|---|---|
-| Applicant | applicant@inrole.demo |
-| Recruiter | recruiter@inrole.demo |
-| Reviewer | reviewer@inrole.demo |
-| Administrator | admin@inrole.demo |
+| Role | Email | Notes |
+|---|---|---|
+| Applicant | applicant@inrole.demo | Has applied to "Frontend Developer Intern" |
+| Recruiter | recruiter@inrole.demo | Northstar Technologies (verified) |
+| Reviewer | reviewer@inrole.demo | Northstar Technologies, read-only plus feedback |
+| Administrator | admin@inrole.demo | Moderation queue |
+| Recruiter (unverified) | pending.recruiter@inrole.demo | Harbour Digital: can draft but not publish |
+| Applicants | candidate01@inrole.demo to candidate14@inrole.demo | Applications in every stage |
 
-The first run seeds Northstar Technologies and three open demo vacancies. To reset, stop the server and delete `instance/inrole.db`.
+## Resetting the database
+The database is `instance/inrole.db` and is created and seeded on first run. `app/schema_migrations.py` adds new columns to an older database automatically. If something still looks wrong after pulling, stop the server and delete the file:
+```powershell
+Remove-Item instance\inrole.db
+```
 
-## Included
-- InRole logo and matching navy / blue / teal visual identity.
-- Homepage banner, search bar, feature sections and sample job cards.
-- Job search and vacancy detail pages.
-- Register, log in and log out.
-- Four role-specific dashboards and role-restricted applicant profile.
-- Applicant CV upload (PDF, DOC or DOCX; 5 MB max) into `private_uploads/`, outside public static files.
-- SQLite models for User, Employer and Vacancy.
+## Features and owners
+| Area | Owner | Features |
+|---|---|---|
+| Accounts, security, foundation | M | F1 register / log in / log out, F2 role-based access, F3 profile and private CV (R8), CSRF, layout, error pages, tests |
+| Vacancies and applicant lists | J | F4 manage vacancies (R1, R2, R6), F5 search and live filter, F6 vacancy detail, F9 applicant list, optimistic locking |
+| Applications and status | H | F7 apply, F8 applicant timeline, F10 status updates, F14 withdraw |
+| Review and moderation | S | F15 reviewer feedback, F11 reports, F12 moderation queue, F13 removal handling, F16 decision templates |
 
-## Important prototype limits
-This is a **rough working skeleton**, not the complete recruitment platform. It supports the foundation and demo flows only. Full apply submission, application timeline / StatusEvent, recruiter vacancy management, reviewer notes, reporting and administrator moderation are not implemented yet; these belong to the other team workstreams. The detail-page apply action currently directs to the dashboard / account creation rather than submitting a real application.
+## Security rules every page follows
+- **Roles:** use `@role_required("recruiter", ...)` from `app/main.py` on any route that is limited to certain roles. It sends anonymous users to log in and returns 403 for the wrong role.
+- **CSRF:** every POST, PUT, PATCH and DELETE request is checked (`app/csrf.py`). In a form, add:
+  ```html
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  ```
+  For JavaScript `fetch()` calls, send the header `X-CSRFToken` with the value of `<meta name="csrf-token">`:
+  ```js
+  fetch(url, {method: "POST", headers: {"X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content}, ...})
+  ```
+  In tests, use the `post()`, `login()` and `logout()` helpers from `tests/conftest.py`; they add the token for you.
+- **Log out** is POST-only. Use the button in the header, or `logout(client)` in tests.
+- **Private CVs (R8)** are stored in `private_uploads/`, outside the public `static` folder. `/private-cv/<id>` only serves a CV to its owner, an admin, or recruiters and reviewers of an employer the applicant has applied to.
+- **Passwords** are stored as salted hashes (Werkzeug), never as plain text.
+- **Secret key:** set the `SECRET_KEY` environment variable for any shared or deployed copy. The built-in key is for local demos only.
 
-For a production build, add CSRF protection (e.g. Flask-WTF), stronger secret configuration, and employer-staff CV access checks. In this demo, an applicant can access their own CV and an admin can access CVs; employer access is deliberately not enabled until ownership checks are integrated.
+## Project layout
+```
+app/
+  __init__.py          create_app(), blueprints, demo seed
+  models.py            User, Employer, Vacancy, Application, Report, ReviewerFeedback, ...
+  auth.py              F1 accounts (M)
+  main.py              home, jobs, vacancy detail, dashboard, profile and CVs, error pages
+  vacancies.py         F4 and F9 (J);  vacancy_rules.py holds the vacancy business rules
+  moderation.py        F11, F12, F13, F15, F16 (S)
+  csrf.py              CSRF protection for every form
+  schema_migrations.py adds new columns to older databases
+  seed_vacancies.py    extra demo data
+  templates/  static/
+private_uploads/       CV files (never committed)
+tests/                 pytest suite
+```
 
-## Structure
-- `app/auth.py` — registration and login
-- `app/main.py` — homepage, jobs, dashboards, applicant profile and CV route
-- `app/models.py` — User, Employer and Vacancy
-- `app/templates/` — Jinja pages
-- `app/static/css/style.css` — brand styling
-- `app/static/js/main.js` — small UI enhancement
-- `private_uploads/` — private CV storage
+## Working rules
+One branch per feature, small commits with clear messages, and a pull request reviewed by a teammate before merging into `main`. `main` must always run and pass `py -m pytest`.
