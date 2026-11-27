@@ -12,6 +12,8 @@ def upgrade_schema(engine):
             "closing_date": "DATE",
             "removal_reason": "TEXT",
             "removed_at": "DATETIME",
+            "closing_date": "DATE",                       # J: R2 closing date
+            "version": "INTEGER NOT NULL DEFAULT 1",      # J: optimistic locking
         },
     }
 

@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block title %}{{ title }}{% endblock %}{% block content %}<section class="auth-area"><div class="panel"><p class="errorcode">{{ code }}</p><h1>{{ title }}</h1><p>{{ message }}</p><a class="btn" href="{{ url_for('main.home') }}">Back to home →</a> &nbsp; <a href="{{ url_for('main.jobs') }}">Browse jobs</a></div></section>{% endblock %}

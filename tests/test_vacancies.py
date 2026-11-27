@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from app import db
 from app.models import Application, Employer, User, Vacancy
 
-from .conftest import login, post
+from .conftest import login, logout, post
 
 
 def ver(app, vacancy_id):
@@ -63,7 +63,7 @@ def test_owner_can_preview_draft_but_other_employer_cannot(app, client):
     draft = vid(app, "UX Research Assistant")
     login(client, "pending.recruiter@inrole.demo")
     assert client.get(f"/jobs/{draft}").status_code == 404
-    client.get("/auth/logout")
+    logout(client)
     login(client, "recruiter@inrole.demo")
     assert "Draft preview" in client.get(f"/jobs/{draft}").get_data(as_text=True)
 

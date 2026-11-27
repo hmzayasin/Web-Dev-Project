@@ -20,8 +20,10 @@ def create_app(test_config=None):
     from app.auth import auth_bp
     from app.main import main_bp
     from app.moderation import moderation_bp
+    from app.saved import saved_bp, init_saved
     app.register_blueprint(main_bp); app.register_blueprint(auth_bp); app.register_blueprint(vacancies_bp)
     app.register_blueprint(moderation_bp)
+    app.register_blueprint(saved_bp); init_saved(app)
     with app.app_context():
         db.create_all()
         from app.schema_migrations import upgrade_schema

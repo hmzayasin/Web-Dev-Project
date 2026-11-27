@@ -4,7 +4,7 @@ from app.models import (
     ReviewerFeedback, StatusEvent, Vacancy,
 )
 
-from .conftest import login, post
+from .conftest import login, logout, post
 
 
 def vacancy_id(app, title):
@@ -16,7 +16,7 @@ def test_moderation_queue_requires_admin(client):
     assert client.get("/moderation").status_code == 302
     login(client, "reviewer@inrole.demo")
     assert client.get("/moderation").status_code == 403
-    client.get("/auth/logout")
+    logout(client)
     login(client, "admin@inrole.demo")
     assert client.get("/moderation").status_code == 200
 
@@ -128,7 +128,7 @@ def test_reviewer_feedback_is_scoped_to_owner_and_persisted(app, client):
         feedback = ReviewerFeedback.query.filter_by(application_id=aid).one()
         assert feedback.recommendation == "Proceed"
 
-    client.get("/auth/logout")
+    logout(client)
     login(client, "applicant@inrole.demo")
     assert client.get(f"/applications/{aid}/feedback").status_code == 403
 
@@ -138,7 +138,7 @@ def test_admin_report_resolution_and_decision_template(app, client):
     login(client, "applicant@inrole.demo")
     post(client, f"/jobs/{vid}/report", {"reason": "Spam", "details": "Repeated advertising"})
 
-    client.get("/auth/logout")
+    logout(client)
     login(client, "admin@inrole.demo")
     with app.app_context():
         report = Report.query.filter_by(vacancy_id=vid).one()

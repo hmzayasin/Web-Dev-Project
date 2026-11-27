@@ -1,1 +1,7 @@
-{% extends 'base.html' %}{% block title %}Log in{% endblock %}{% block content %}<section class="auth-area"><div class="panel"><label>WELCOME BACK</label><h1>Good to see you.</h1><p>Log in to continue your InRole journey.</p><form method="post" class="form"><label>Email address<input name="email" type="email" required placeholder="you@example.com"></label><label>Password<input name="password" type="password" required></label><button class="btn">Log in →</button></form><p>New to InRole? <a href="{{ url_for('auth.register') }}">Create an account</a></p><div class="demo"><b>Demo account</b><br>applicant@inrole.demo<br>Password: InRole123!</div></div></section>{% endblock %}
+{% extends 'base.html' %}{% block title %}Log in{% endblock %}{% block content %}<section class="auth-area"><div class="panel"><label>WELCOME BACK</label><h1>Good to see you.</h1><p>Log in to continue your InRole journey.</p>
+<form method="post" class="form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label>Email address<input name="email" type="email" value="{{ email }}" required autocomplete="email" placeholder="you@example.com"></label>
+<label>Password<input name="password" type="password" required autocomplete="current-password"></label>
+<button class="btn">Log in →</button></form>
+<p>New to InRole? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+<div class="demo"><b>Demo accounts</b> · password <b>InRole123!</b><br>applicant@inrole.demo · recruiter@inrole.demo<br>reviewer@inrole.demo · admin@inrole.demo<br>pending.recruiter@inrole.demo (unverified employer)</div></div></section>{% endblock %}

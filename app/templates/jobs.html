@@ -12,7 +12,7 @@
 <section class="section"><div class="section-title"><div><label>OPEN VACANCIES</label><h2 id="job-count" aria-live="polite">{{ vacancies|length }} {{ 'opportunity' if vacancies|length==1 else 'opportunities' }}</h2></div></div>
 <div class="jobs" id="job-list">{% for v in vacancies %}
 <a class="job" href="{{ url_for('main.vacancy_detail',vid=v.id) }}" data-index="{{ loop.index0 }}" data-location="{{ v.location|lower }}" data-type="{{ v.job_type|lower }}" data-created="{{ v.created_at.strftime('%Y%m%d%H%M%S') if v.created_at else '' }}" data-closing="{{ v.closing_date.isoformat() if v.closing_date else '9999-12-31' }}" data-search="{{ (v.title ~ ' ' ~ v.employer.name ~ ' ' ~ v.location ~ ' ' ~ v.description)|lower }}">
-<div class="jobtop"><b class="mark">{{ v.employer.name[:1] }}</b><span class="tag">{{ v.job_type }}</span></div><h3>{{ v.title }}</h3><p>{{ v.employer.name }}</p>
+<div class="jobtop"><b class="mark">{{ v.employer.name[:1] }}</b><span class="tag">{{ v.job_type }}</span></div><h3>{{ v.title }}</h3>{% if is_saved(v.id) %}<span class="tag saved-tag">★ Saved</span>{% endif %}<p>{{ v.employer.name }}</p>
 <small>⌖ {{ v.location }} &nbsp; ↗</small>
 {% if v.closing_date %}<small class="deadline {% if v.days_left is not none and v.days_left<=7 %}soon{% endif %}">{% if v.days_left==0 %}Closes today{% elif v.days_left==1 %}Closes tomorrow{% elif v.days_left<=7 %}Closes in {{ v.days_left }} days{% else %}Closes {{ v.closing_date.strftime('%d %b %Y') }}{% endif %}</small>{% endif %}</a>{% endfor %}</div>
 <p id="job-empty" class="empty" {% if vacancies %}hidden{% endif %}>No open roles matched your search. <a href="{{ url_for('main.jobs') }}">Clear filters</a></p></section>{% endblock %}
